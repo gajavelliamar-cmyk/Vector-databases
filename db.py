@@ -1,96 +1,70 @@
+import chromadb
 
+# define the location
+client = chromadb.PersistentClient(
+    path="./test_db"
+)
 
-from sentence_transformers import SentenceTransformer
-import faiss
-import numpy as np
+# create the database/collection
+collection = client.get_or_create_collection(name="courses")
 
-# loading embedding model
-model = SentenceTransformer("all-MiniLM-L6-v2")
+print("DataBase and Collection Created !!!")
 
-documents = ["Python is a programming language",            
+# insert the records
+collection.add(
+    ids=["1","2","3","4","5"],
+    documents=["Python is a programming language",            
              "Java is used for software development",
              "I love machine learning",
              "Deep learning uses neural networks",
              "Python is eazy to learn"]
-
-# create embeddings
-embeddings = model.encode(documents)
-
-# convert embedding to float
-embeddings = np.array(embeddings,dtype="float32") # 10 -- 10.0000000001 --- 10.00000000000000000000000043
-dimension = embeddings.shape[1] # 384 (3280) (Claude)
-
-# create faiss db (with 384)
-index = faiss.IndexFlatL2(dimension)
-
-# add records to faiss
-index.add(embeddings)
-
-# print records from faiss db
-print(index.ntotal)
-
-# Similarity Search
-query = ["I want to learn Python"]
-query_embeddings = model.encode(query)
-query_embeddings = np.array(query_embeddings,dtype="float32")
-distances,indexes = index.search(query_embeddings, 2)
-
-print(indexes, distances)
-
-
-# Example 4: Insert more documents
-new_documents = [
-    "React is a JavaScript library",
-    "FastAPI is a Python web framework"
-]
-
-# Convert new documents into embeddings
-new_embeddings = model.encode(new_documents)
-
-new_embeddings = np.array(
-    new_embeddings,
-    dtype="float32"
 )
 
-# Insert into existing FAISS index
-index.add(new_embeddings)
+print("5 documents are inserted !!!")
 
-# Add documents to our document list
-documents.extend(new_documents)
+# fetch the data
+results = collection.get()
+print(results["ids"])
+print(results["documents"])
 
-print("Total vectors:", index.ntotal)
-print("Total documents:", len(documents))
-
-
-query = ["I want to develop a frontend application"]
-
-query_embedding = model.encode(query)
-query_embedding = np.array(
-    query_embedding,
-    dtype="float32"
+# similarity search
+result = collection.query(
+    query_texts=["what is python"],
+    n_results=2
 )
+print(result)
 
-distances, indexes = index.search(query_embedding, 3)
-
-
-print(documents[indexes[0,0]],documents[indexes[0,1]],documents[indexes[0,2]])
-
-
-# Update document at position 0
-documents[0] = "Python is widely used in AI development"
-
-# Generate embeddings for all updated documents
-embeddings = model.encode(documents)
-embeddings = np.array(embeddings, dtype="float32")
-
-# Rebuild the index
-index = faiss.IndexFlatL2(embeddings.shape[1])
-index.add(embeddings)
-
-print("Updated index count:", index.ntotal)
-print("Updated document:", documents[0])
+# update
+collection.update(
+    ids=["1"],
+    documents = ["Python is widely used in machine laerning and AI"]
+)
+print("Document Updated !!!")
+results = collection.get()
+print(results["documents"])
 
 
-faiss.write_index(index, "documents.index")
-print("Index saved")
+collection.delete(ids=["2"])
+print(collection.count())
+
+
+collection.add(
+    ids=["2"],
+    documents=["Agentic AI"],
+    metadatas=[{"VPro":"VPro","Batch-5":"Batch-5"}]
+)
+print(collection.count())
+
+res1 = collection.get(
+    where={"VPro":"VPro"}
+)
+print(res1)
+
+
+
+
+
+
+
+
 

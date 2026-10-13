@@ -1,6 +1,3 @@
-fastapi
-uvicorn
-requests
-numpy
-pandas
-torch
+pinecone
+sentence-transformers
+python-dotenv
